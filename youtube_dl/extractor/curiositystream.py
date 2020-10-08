@@ -27,10 +27,13 @@ class CuriosityStreamBaseIE(InfoExtractor):
 
     def _call_api(self, path, video_id):
         headers = {}
+        headers['X-4k-Capable'] = 1
+        headers['x-api-version'] = "v3"
+        headers['x-platform'] = "web"
         if self._auth_token:
             headers['X-Auth-Token'] = self._auth_token
         result = self._download_json(
-            self._API_BASE_URL + path, video_id, headers=headers)
+            self._API_BASE_URL + path + "?encodingsNew=true&encodingsFormat=mpd", video_id, headers=headers)
         self._handle_errors(result)
         return result['data']
 
@@ -68,11 +71,10 @@ class CuriosityStreamIE(CuriosityStreamBaseIE):
 
         formats = []
         for encoding in media.get('encodings', []):
-            m3u8_url = encoding.get('master_playlist_url')
-            if m3u8_url:
-                formats.extend(self._extract_m3u8_formats(
-                    m3u8_url, video_id, 'mp4', 'm3u8_native',
-                    m3u8_id='hls', fatal=False))
+            mpd_url = encoding.get('master_playlist_url')
+            if mpd_url:
+                formats.extend(self._extract_mpd_formats(
+                    mpd_url, video_id, fatal=False))
             encoding_url = encoding.get('url')
             file_url = encoding.get('file_url')
             if not encoding_url and not file_url:
